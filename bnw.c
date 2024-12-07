@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 
 #define black 0
 #define white 255
@@ -7,51 +8,33 @@
 int main(void)
 {
     FILE *in = fopen("hypatia.bmp", "r");
-    FILE *out = fopen("bw.bmp", "w+");
-
-    int i;
-    unsigned char byte[54];
-    unsigned char colortable[1024];
-
-    if(in==NULL)
+    FILE *out = fopen("bnw.bmp", "w");
+    if(!in || !out)
     {
         printf("This file doesn't exist.\n");
+        return 101;
     }
 
-    for(i = 0; i < 54; i++)
-    {
-        byte[i]=getc(in);
-    }
+    unsigned char header [54];
+    fread(header, 1, 54, in);
+    fwrite(header, 1, 54, out);
 
-    fwrite(byte,sizeof(unsigned char), 54, out);
+    int height = *(int *)&header[22];
+    int width = *(int *)&header[18];
+    int bitDepth = *(int *)&header[28];
+    int size = height * width;
+    unsigned char *buffer = (unsigned char *)malloc(size);
+    fread(buffer, 1, size, in);
 
-    int height = *(int*)&byte[18];
-    int width = *(int*)&byte[22];
-    int bitDepth = *(int*)&byte[28];
-
-    printf("width %d\n", width);
-    printf("height %d\n", height);
-    int size=height*width;
-
-    if(bitDepth <= 8)
-    {
-        fread(colortable, sizeof(unsigned char), 1024, in);
-        fwrite(colortable, sizeof(unsigned char), 1024, out);
-    }
-
-    unsigned char buffer[size];
-
-    fread(buffer, sizeof(unsigned char), size, in);
-
-    for(i = 0; i < size; i++)
+    for (int i = 0; i < size; i++)
     {
         buffer[i] = (buffer[i] > dark) ? white : black;
     }
 
-    fwrite(buffer, sizeof(unsigned char), size, out);
+    fwrite(buffer, 1, size, out);
 
     fclose(in);
     fclose(out);
-
+    free(buffer);
     return 0;
 }
